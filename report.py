@@ -72,6 +72,20 @@ REPORT_QUERIES = {
 
 
 # Function to read an SQL query from a file
+def load_query(report_type):
+    file_path = REPORT_QUERIES.get(report_type)
+    if not file_path:
+        st.error(f"Invalid report type: {report_type}")
+        return None
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            return file.read()
+    except Exception as e:
+        st.error(f"Error loading SQL query file: {file_path}\nError: {e}")
+        return None
+
+# Function to fetch data from ODBC database (Masterlist + Reports)
 def load_data(report_type):
     query = load_query(report_type)
     if not query:
@@ -94,28 +108,6 @@ def load_data(report_type):
     except mysql.connector.Error as e:
         st.error(f"❌ Database connection error: {e}")
         return pd.DataFrame()
-
-# Function to fetch data from ODBC database (Masterlist + Reports)
-def load_data(report_type):
-    query = load_query(report_type)
-    if not query:
-        return pd.DataFrame()
-
-    try:
-        conn = pyodbc.connect(CONN_STRING, autocommit=True)
-        with conn:
-            df = pd.read_sql(query, conn)
-        return df
-    except Exception as e:
-        st.error(f"❌ Database connection error: {e}")
-        return pd.DataFrame()
-        
-# Function to convert DataFrame to Excel
-def convert_df_to_excel(df):
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name="Report")
-    return output.getvalue()
 
 # Sidebar Navigation
 
