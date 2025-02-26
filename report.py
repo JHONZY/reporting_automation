@@ -2,7 +2,6 @@ import streamlit as st  # type: ignore
 import pandas as pd  # type: ignore
 import pyodbc
 import subprocess
-import win32com.client
 import io
 import time
 import os
