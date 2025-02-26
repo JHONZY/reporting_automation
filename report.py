@@ -17,6 +17,9 @@ DB_PASSWORD = "$PMadrid1234jb"
 DB_NAME = "bcrm"
 DSN_NAME = "data"  # ODBC Data Source Name
 
+# Use a direct connection string instead of DSN
+CONN_STRING = f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={DB_SERVER};DATABASE={DB_NAME};UID={DB_USER};PWD={DB_PASSWORD}"
+
 # Function to run the Excel macro
 def run_excel_macro():
     try:
@@ -88,15 +91,13 @@ def load_data(report_type):
         return pd.DataFrame()
 
     try:
-        # Create a single database connection
-        conn = pyodbc.connect(f"DSN={DSN_NAME};UID={DB_USER};PWD={DB_PASSWORD}", autocommit=True)
+        conn = pyodbc.connect(CONN_STRING, autocommit=True)
         with conn:
             df = pd.read_sql(query, conn)
         return df
     except Exception as e:
-        st.error(f"Database connection error: {e}")
+        st.error(f"❌ Database connection error: {e}")
         return pd.DataFrame()
-
         
 # Function to convert DataFrame to Excel
 def convert_df_to_excel(df):
