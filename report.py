@@ -7,6 +7,8 @@ import time
 import os
 import sys
 import mysql.connector
+import pywin32
+
 
 try:
     import win32com.client
