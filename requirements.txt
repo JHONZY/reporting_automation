@@ -1,5 +1,11 @@
 streamlit
 pandas
 pyodbc
-win32com.client
-pywin32
+subprocess-run
+pypiwin32
+io
+openpyxl
+xlsxwriter
+pyautogui
+selenium
+tk
