@@ -56,7 +56,9 @@ def load_data(report_type):
             host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
-            database=DB_NAME
+            database=DB_NAME,
+            port=3306,  # Ensure you're using the correct port
+            use_pure=True  # Ensures a pure Python connection
         )
         cursor = conn.cursor(dictionary=True)
         cursor.execute(query)
