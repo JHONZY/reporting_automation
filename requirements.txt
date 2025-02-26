@@ -1,11 +1,8 @@
 streamlit
 pandas
 pyodbc
-subprocess-run
 openpyxl
 xlsxwriter
 selenium
 pyautogui
-io
-sys
-time
+requests
