@@ -6,3 +6,4 @@ xlsxwriter
 selenium
 pyautogui
 requests
+mysql-connector-python
