@@ -1,32 +1,20 @@
-import streamlit as st  # type: ignore
-import pandas as pd  # type: ignore
-import pyodbc
+import streamlit as st
+import pandas as pd
+import mysql.connector
 import subprocess
 import io
 import time
 import os
 import sys
-import mysql.connector
-import pywin32
-
-
-try:
-    import win32com.client
-except ImportError:
-    st.error("⚠ Missing win32com.client. Install with: `pip install pywin32`")
 
 # Streamlit Page Config
 st.set_page_config(page_title="REPORTING WEBSITE", layout="wide")
 
-# Database Connection Config
-DB_SERVER = "192.168.15.197"
-DB_USER = "jborromeo"
-DB_PASSWORD = "$PMadrid1234jb"
-DB_NAME = "bcrm"
-ODBC_DRIVER = "ODBC Driver 17 for SQL Server"  # Ensure this is installed
-
-# Connection String for SQL Server
-CONN_STRING = f"DRIVER={{{ODBC_DRIVER}}};SERVER={DB_SERVER};DATABASE={DB_NAME};UID={DB_USER};PWD={DB_PASSWORD}"
+# Load Database Credentials from Streamlit Secrets
+DB_HOST = st.secrets["DB_HOST"]
+DB_USER = st.secrets["DB_USER"]
+DB_PASSWORD = st.secrets["DB_PASSWORD"]
+DB_NAME = st.secrets["DB_NAME"]
 
 # Base Directory for Queries
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -53,14 +41,19 @@ def load_query(report_type):
         st.error(f"❌ Error loading SQL query file: {file_path}\nError: {e}")
         return None
 
-# Function to Connect to Database & Fetch Data
+# Function to Connect to MySQL & Fetch Data
 def load_data(report_type):
     query = load_query(report_type)
     if not query:
         return pd.DataFrame()
 
     try:
-        conn = pyodbc.connect(CONN_STRING, timeout=10)
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME
+        )
         df = pd.read_sql(query, conn)
         conn.close()
         return df
@@ -74,21 +67,6 @@ def convert_df_to_excel(df):
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name="Sheet1")
     return output.getvalue()
-
-# Function to Run Excel Macro
-def run_excel_macro():
-    try:
-        excel = win32com.client.Dispatch("Excel.Application")
-        excel.Visible = False  # Run in background
-        wb = excel.Workbooks.Open(r"\\192.168.15.241\admin\ACTIVE\jlborromeo\CBS HOME LOAN\CBS HEADER MAPPING V2.xlsm")
-        excel.Application.Run("AlignDataBasedOnMappingWithMissingHeaders")
-        wb.Save()
-        wb.Close()
-        excel.Quit()
-        return True
-    except Exception as e:
-        st.error(f"Failed to run macro: {e}")
-        return False
 
 # Function to Run External Python Script
 def run_python_script():
