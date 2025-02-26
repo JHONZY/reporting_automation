@@ -10,11 +10,15 @@ import sys
 # Streamlit Page Config
 st.set_page_config(page_title="REPORTING WEBSITE", layout="wide")
 
-# Load Database Credentials from Streamlit Secrets
-DB_HOST = st.secrets["DB_HOST"]
-DB_USER = st.secrets["DB_USER"]
-DB_PASSWORD = st.secrets["DB_PASSWORD"]
-DB_NAME = st.secrets["DB_NAME"]
+# Load Database Credentials
+try:
+    DB_HOST = st.secrets["DB"]["DB_HOST"]
+    DB_USER = st.secrets["DB"]["DB_USER"]
+    DB_PASSWORD = st.secrets["DB"]["DB_PASSWORD"]
+    DB_NAME = st.secrets["DB"]["DB_NAME"]
+except KeyError:
+    st.error("❌ Database credentials missing! Set them in Streamlit Secrets.")
+    st.stop()
 
 # Base Directory for Queries
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -38,7 +42,7 @@ def load_query(report_type):
         with open(file_path, "r", encoding="utf-8") as file:
             return file.read()
     except Exception as e:
-        st.error(f"❌ Error loading SQL query file: {file_path}\nError: {e}")
+        st.error(f"❌ Error loading SQL query file: {e}")
         return None
 
 # Function to Connect to MySQL & Fetch Data
@@ -54,10 +58,14 @@ def load_data(report_type):
             password=DB_PASSWORD,
             database=DB_NAME
         )
-        df = pd.read_sql(query, conn)
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(query)
+        data = cursor.fetchall()
+        df = pd.DataFrame(data)
+        cursor.close()
         conn.close()
         return df
-    except Exception as e:
+    except mysql.connector.Error as e:
         st.error(f"❌ Database connection error: {e}")
         return pd.DataFrame()
 
@@ -95,35 +103,34 @@ st.title(f"{selected_campaign}" if selected_campaign else "REPORTING WEBSITE")
 
 # CBS HOMELOAN - SHOW MASTERLIST + PROCESS ENDORSEMENT
 if selected_campaign == "CBS HOMELOAN":
-    if st.session_state.get("show_masterlist", True):
-        df_masterlist = load_data("MASTERLIST")
-        if not df_masterlist.empty:
-            st.dataframe(df_masterlist)
-            col1, col2 = st.columns([0.79, 0.15])
+    df_masterlist = load_data("MASTERLIST")
+    if not df_masterlist.empty:
+        st.dataframe(df_masterlist)
+        col1, col2 = st.columns([0.79, 0.15])
 
-            with col1:
-                if st.button("PROCESS ENDORSEMENT", use_container_width=False):
-                    status_placeholder = st.empty()
-                    status_placeholder.info("Running Import Python Script... Please wait.")
+        with col1:
+            if st.button("PROCESS ENDORSEMENT", use_container_width=False):
+                status_placeholder = st.empty()
+                status_placeholder.info("Running Import Python Script... Please wait.")
+                time.sleep(5)
+                status_placeholder.empty()
+
+                if run_python_script():
+                    status_placeholder.info("Processing complete.")
+                    time.sleep(2)
+                    status_placeholder.empty()
+                else:
+                    status_placeholder.error("Importing Error! ❌")
                     time.sleep(5)
                     status_placeholder.empty()
 
-                    if run_python_script():
-                        status_placeholder.info("Processing complete.")
-                        time.sleep(2)
-                        status_placeholder.empty()
-                    else:
-                        status_placeholder.error("Importing Error! ❌")
-                        time.sleep(5)
-                        status_placeholder.empty()
-
-            with col2:
-                st.download_button(
-                    label="📥 DOWNLOAD MASTERLIST",
-                    data=convert_df_to_excel(df_masterlist),
-                    file_name="Masterlist.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+        with col2:
+            st.download_button(
+                label="📥 DOWNLOAD MASTERLIST",
+                data=convert_df_to_excel(df_masterlist),
+                file_name="Masterlist.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
 # BDO HOMELOAN - Report Selection
 elif selected_campaign == "BDO HOMELOAN":
