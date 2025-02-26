@@ -53,11 +53,11 @@ def load_data(report_type):
 
     try:
         conn = mysql.connector.connect(
-            host=DB_HOST,  # Use IP instead of 'localhost'
+            host=DB_HOST,    # Use the actual IP, not "localhost"
             user=DB_USER,
             password=DB_PASSWORD,
             database=DB_NAME,
-            port=3306,  # Explicitly specify port to force TCP connection
+            port=3306,       # Explicitly set MySQL port
             use_pure=True
         )
         cursor = conn.cursor(dictionary=True)
@@ -70,6 +70,7 @@ def load_data(report_type):
     except mysql.connector.Error as e:
         st.error(f"❌ Database connection error: {e}")
         return pd.DataFrame()
+
 
 # Function to Convert DataFrame to Excel File
 def convert_df_to_excel(df):
