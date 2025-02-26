@@ -7,3 +7,4 @@ selenium
 pyautogui
 requests
 mysql-connector-python
+pywin32
