@@ -74,15 +74,15 @@ REPORT_QUERIES = {
 # Function to read an SQL query from a file
 def load_query(report_type):
     file_path = REPORT_QUERIES.get(report_type)
-    if not file_path:
-        st.error(f"Invalid report type: {report_type}")
+    if not file_path or not os.path.exists(file_path):
+        st.error(f"⚠ SQL query file not found: {file_path}")
         return None
 
     try:
         with open(file_path, "r", encoding="utf-8") as file:
             return file.read()
     except Exception as e:
-        st.error(f"Error loading SQL query file: {file_path}\nError: {e}")
+        st.error(f"❌ Error loading SQL query file: {file_path}\nError: {e}")
         return None
 
 # Function to fetch data from ODBC database (Masterlist + Reports)
