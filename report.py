@@ -6,6 +6,7 @@ import io
 import time
 import os
 import sys
+import mysql.connector
 
 # Streamlit Page Config
 st.set_page_config(page_title="REPORTING WEBSITE", layout="wide")
@@ -71,18 +72,28 @@ REPORT_QUERIES = {
 
 
 # Function to read an SQL query from a file
-def load_query(report_type):
-    file_path = REPORT_QUERIES.get(report_type)
-    if not file_path:
-        st.error(f"Invalid report type: {report_type}")
-        return None
+def load_data(report_type):
+    query = load_query(report_type)
+    if not query:
+        return pd.DataFrame()
 
     try:
-        with open(file_path, "r", encoding="utf-8") as file:
-            return file.read()
-    except Exception as e:
-        st.error(f"Error loading SQL query file: {file_path}\nError: {e}")
-        return None
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            connection_timeout=10  # Set timeout (adjust if needed)
+        )
+        
+        df = pd.read_sql(query, conn)  # Read data
+        conn.close()
+        
+        return df
+
+    except mysql.connector.Error as e:
+        st.error(f"❌ Database connection error: {e}")
+        return pd.DataFrame()
 
 # Function to fetch data from ODBC database (Masterlist + Reports)
 def load_data(report_type):
