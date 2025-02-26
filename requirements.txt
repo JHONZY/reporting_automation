@@ -2,10 +2,10 @@ streamlit
 pandas
 pyodbc
 subprocess-run
-pypiwin32
-io
 openpyxl
 xlsxwriter
-pyautogui
 selenium
-tk
+pyautogui
+io
+sys
+time
