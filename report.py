@@ -54,13 +54,18 @@ def run_python_script():
         st.error(f"Importing Error! ❌\n{e.stderr}")  # Show error details
         return False
 
-# File paths to SQL queries
-QUERIES_PATH = r"C:\Users\SPM.SPMWNDT0659\Documents\Python\streamlit\queries"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Define the relative path for the queries folder in GitHub repo
+QUERIES_PATH = os.path.join(BASE_DIR, "queries")
+
+# Define the report queries dynamically
 REPORT_QUERIES = {
     "MASTERLIST": os.path.join(QUERIES_PATH, "masterlist.sql"),
     "SKIPS AND COLLECT REPORT": os.path.join(QUERIES_PATH, "skips_and_collect_report.sql"),
     "COLLECT REPORT": os.path.join(QUERIES_PATH, "collect_report.sql"),
 }
+
 
 # Function to read an SQL query from a file
 def load_query(report_type):
