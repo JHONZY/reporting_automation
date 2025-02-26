@@ -2,3 +2,4 @@ streamlit
 pandas
 pyodbc
 win32com.client
+pywin32
