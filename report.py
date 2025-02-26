@@ -11,13 +11,18 @@ import sys
 st.set_page_config(page_title="REPORTING WEBSITE", layout="wide")
 
 # Load Database Credentials
-try:
-    DB_HOST = st.secrets["DB"]["DB_HOST"]
-    DB_USER = st.secrets["DB"]["DB_USER"]
-    DB_PASSWORD = st.secrets["DB"]["DB_PASSWORD"]
-    DB_NAME = st.secrets["DB"]["DB_NAME"]
-except KeyError:
+if "DB" not in st.secrets:
     st.error("❌ Database credentials missing! Set them in Streamlit Secrets.")
+    st.stop()
+
+DB_HOST = st.secrets["DB"].get("DB_HOST", "")
+DB_USER = st.secrets["DB"].get("DB_USER", "")
+DB_PASSWORD = st.secrets["DB"].get("DB_PASSWORD", "")
+DB_NAME = st.secrets["DB"].get("DB_NAME", "")
+
+# Validate Secrets
+if not all([DB_HOST, DB_USER, DB_PASSWORD, DB_NAME]):
+    st.error("❌ One or more database credentials are missing!")
     st.stop()
 
 # Base Directory for Queries
@@ -53,12 +58,11 @@ def load_data(report_type):
 
     try:
         conn = mysql.connector.connect(
-            host=DB_HOST,    # Use the actual IP, not "localhost"
+            host=DB_HOST,
             user=DB_USER,
             password=DB_PASSWORD,
             database=DB_NAME,
-            port=3306,       # Explicitly set MySQL port
-            use_pure=True
+            port=3306
         )
         cursor = conn.cursor(dictionary=True)
         cursor.execute(query)
@@ -71,6 +75,23 @@ def load_data(report_type):
         st.error(f"❌ Database connection error: {e}")
         return pd.DataFrame()
 
+# Test Database Connection at Startup
+def test_db_connection():
+    try:
+        conn = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            port=3306
+        )
+        conn.close()
+        st.success("✅ Database Connection Successful!")
+    except mysql.connector.Error as e:
+        st.error(f"❌ Database connection failed: {e}")
+        st.stop()
+
+test_db_connection()
 
 # Function to Convert DataFrame to Excel File
 def convert_df_to_excel(df):
