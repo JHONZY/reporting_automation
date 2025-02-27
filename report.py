@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import mysql.connector
+import pyodbc
 import subprocess
 import io
 import time
@@ -10,22 +10,19 @@ import sys
 # Streamlit Page Config
 st.set_page_config(page_title="REPORTING WEBSITE", layout="wide")
 
-# Validate and Load Database Credentials
+# Load Database Credentials
 if "DB" not in st.secrets:
     st.error("❌ Database credentials missing! Set them in Streamlit Secrets.")
     st.stop()
 
-try:
-    DB_CONFIG = st.secrets["DB"]
-    DB_HOST = DB_CONFIG.get("DB_HOST", "")
-    DB_USER = DB_CONFIG.get("DB_USER", "")
-    DB_PASSWORD = DB_CONFIG.get("DB_PASSWORD", "")
-    DB_NAME = DB_CONFIG.get("DB_NAME", "")
-except Exception as e:
-    st.error(f"❌ Error fetching database credentials: {e}")
-    st.stop()
+DB_DRIVER = st.secrets["DB"].get("DRIVER", "")
+DB_SERVER = st.secrets["DB"].get("SERVER", "")
+DB_DATABASE = st.secrets["DB"].get("DATABASE", "")
+DB_USER = st.secrets["DB"].get("UID", "")
+DB_PASSWORD = st.secrets["DB"].get("PWD", "")
 
-if not all([DB_HOST, DB_USER, DB_PASSWORD, DB_NAME]):
+# Validate Secrets
+if not all([DB_DRIVER, DB_SERVER, DB_DATABASE, DB_USER, DB_PASSWORD]):
     st.error("❌ One or more database credentials are missing!")
     st.stop()
 
@@ -40,7 +37,7 @@ REPORT_QUERIES = {
     "COLLECT REPORT": os.path.join(QUERIES_PATH, "collect_report.sql"),
 }
 
-# Load SQL Query from File
+# Function to Load SQL Query
 def load_query(report_type):
     file_path = REPORT_QUERIES.get(report_type)
     if not file_path or not os.path.exists(file_path):
@@ -54,23 +51,22 @@ def load_query(report_type):
         st.error(f"❌ Error loading SQL query file: {e}")
         return None
 
-# Cached MySQL Connection
-@st.cache_resource
+# Function to Connect to Database
 def get_db_connection():
     try:
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME,
-            port=3306
+        conn = pyodbc.connect(
+            f"DRIVER={DB_DRIVER};"
+            f"SERVER={DB_SERVER};"
+            f"DATABASE={DB_DATABASE};"
+            f"UID={DB_USER};"
+            f"PWD={DB_PASSWORD}"
         )
         return conn
-    except mysql.connector.Error as e:
-        st.error(f"❌ Database connection error: {e}")
+    except Exception as e:
+        st.error(f"❌ Database connection failed: {e}")
         return None
 
-# Fetch Data from MySQL
+# Function to Fetch Data from SQL
 def load_data(report_type):
     query = load_query(report_type)
     if not query:
@@ -81,45 +77,40 @@ def load_data(report_type):
         return pd.DataFrame()
 
     try:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute(query)
-        data = cursor.fetchall()
-        return pd.DataFrame(data)
-    except mysql.connector.Error as e:
-        st.error(f"❌ Query execution error: {e}")
-        return pd.DataFrame()
-    finally:
-        cursor.close()
+        df = pd.read_sql(query, conn)
         conn.close()
+        return df
+    except Exception as e:
+        st.error(f"❌ Error fetching data: {e}")
+        return pd.DataFrame()
 
-# Test Database Connection
+# Test Database Connection at Startup
 def test_db_connection():
     conn = get_db_connection()
     if conn:
         st.success("✅ Database Connection Successful!")
         conn.close()
     else:
-        st.error("❌ Database connection failed.")
         st.stop()
 
 test_db_connection()
 
-# Convert DataFrame to Excel
+# Function to Convert DataFrame to Excel File
 def convert_df_to_excel(df):
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name="Sheet1")
     return output.getvalue()
 
-# Run External Python Script
+# Function to Run External Python Script
 def run_python_script():
     try:
         script_path = os.path.join(BASE_DIR, "importing", "import.py")
         subprocess.run([sys.executable, script_path], capture_output=True, text=True, check=True)
-        st.success("✅ Python Import Script Executed Successfully!")
+        st.success("Python Import Script Executed Successfully! ✅")
         return True
     except subprocess.CalledProcessError as e:
-        st.error(f"❌ Importing Error!\n{e.stderr}")
+        st.error(f"Importing Error! ❌\n{e.stderr}")
         return False
 
 # Sidebar Navigation
@@ -136,16 +127,15 @@ if selected_campaign != st.session_state["selected_campaign"]:
 
 st.title(f"{selected_campaign}" if selected_campaign else "REPORTING WEBSITE")
 
-# CBS HOMELOAN - MASTERLIST & ENDORSEMENT
+# CBS HOMELOAN - SHOW MASTERLIST + PROCESS ENDORSEMENT
 if selected_campaign == "CBS HOMELOAN":
     df_masterlist = load_data("MASTERLIST")
     if not df_masterlist.empty:
         st.dataframe(df_masterlist)
-
         col1, col2 = st.columns([0.79, 0.15])
 
         with col1:
-            if st.button("PROCESS ENDORSEMENT"):
+            if st.button("PROCESS ENDORSEMENT", use_container_width=False):
                 status_placeholder = st.empty()
                 status_placeholder.info("Running Import Python Script... Please wait.")
                 time.sleep(5)
@@ -174,10 +164,10 @@ elif selected_campaign == "BDO HOMELOAN":
         st.session_state["report_type"] = "SKIPS AND COLLECT REPORT"
 
     col1, col2 = st.columns(2)
-    if col1.button("SKIPS AND COLLECT REPORT"):
+    if col1.button("SKIPS AND COLLECT REPORT", use_container_width=True):
         st.session_state["report_type"] = "SKIPS AND COLLECT REPORT"
         st.rerun()
-    if col2.button("COLLECT REPORT"):
+    if col2.button("COLLECT REPORT", use_container_width=True):
         st.session_state["report_type"] = "COLLECT REPORT"
         st.rerun()
 
