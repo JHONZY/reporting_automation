@@ -1,9 +1,10 @@
 streamlit
 pandas
-pyodbc
 openpyxl
 xlsxwriter
 selenium
 pyautogui
 requests
-mysql-connector-python
+pyodbc==4.0.39
+mysql-connector-python==8.0.33
+
