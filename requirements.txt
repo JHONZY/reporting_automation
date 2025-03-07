@@ -9,4 +9,4 @@ pyodbc
 mysql-connector-python
 unixodbc
 unixodbc-dev
-
+--upgrade pip
