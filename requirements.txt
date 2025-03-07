@@ -5,7 +5,8 @@ xlsxwriter
 selenium
 pyautogui
 requests
-pyodbc==4.0.39
-mysql-connector-python==8.0.33
-pip install --upgrade pip
+pyodbc
+mysql-connector-python
+unixodbc
+unixodbc-dev
 
